@@ -12,120 +12,87 @@ class AddBudgetScreen extends StatefulWidget {
 }
 
 class _AddBudgetScreenState extends State<AddBudgetScreen> {
-  final _titleController = TextEditingController();
-  final _limitController = TextEditingController();
-  IconData _selectedIcon = Icons.category_rounded;
-  Color _selectedColor = AppTheme.teal;
-
-  final List<Map<String, dynamic>> _iconOptions = [
-    {'icon': Icons.home_rounded, 'label': 'Home'},
-    {'icon': Icons.restaurant_rounded, 'label': 'Food'},
-    {'icon': Icons.directions_car_rounded, 'label': 'Car'},
-    {'icon': Icons.local_hospital_rounded, 'label': 'Health'},
-    {'icon': Icons.school_rounded, 'label': 'Education'},
-    {'icon': Icons.shopping_bag_rounded, 'label': 'Shopping'},
-    {'icon': Icons.flight_rounded, 'label': 'Travel'},
-    {'icon': Icons.sports_esports_rounded, 'label': 'Entertainment'},
-    {'icon': Icons.fitness_center_rounded, 'label': 'Gym'},
-    {'icon': Icons.receipt_long_rounded, 'label': 'Bills'},
-    {'icon': Icons.pets_rounded, 'label': 'Pets'},
-    {'icon': Icons.category_rounded, 'label': 'Other'},
-  ];
+  final _titleCtrl = TextEditingController();
+  final _limitCtrl = TextEditingController();
+  IconData _icon = Icons.category_rounded;
+  Color _color = AppTheme.teal;
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _limitController.dispose();
+    _titleCtrl.dispose();
+    _limitCtrl.dispose();
     super.dispose();
   }
 
   void _submit() {
-    final title = _titleController.text.trim();
-    final limit = double.tryParse(_limitController.text);
-
+    final title = _titleCtrl.text.trim();
+    final limit = double.tryParse(_limitCtrl.text);
     if (title.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a category name')),
-      );
+      _snack('Please enter a category name');
       return;
     }
     if (limit == null || limit <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid budget limit')),
-      );
+      _snack('Please enter a valid budget limit');
       return;
     }
-
-    context.read<BudgetCubit>().addCustomBudget(
-          title,
-          limit,
-          _selectedIcon,
-          _selectedColor,
-        );
+    context.read<BudgetCubit>().addCustomBudget(title, limit, _icon, _color);
     Navigator.pop(context);
   }
+
+  void _snack(String msg) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(msg)));
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.lightBg,
-      appBar: AppBar(
-        title: const Text('New Category'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      appBar: AppBar(title: const Text('New Category')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Preview card
+            // Preview
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _selectedColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                    color: _selectedColor.withOpacity(0.3), width: 1.5),
+                color: _color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(18),
+                border:
+                    Border.all(color: _color.withOpacity(0.25), width: 1.5),
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 52,
-                    height: 52,
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
-                      color: _selectedColor,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(_selectedIcon, color: Colors.white, size: 26),
+                        color: _color,
+                        borderRadius: BorderRadius.circular(14)),
+                    child: Icon(_icon, color: Colors.white, size: 24),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _titleController.text.isEmpty
+                        _titleCtrl.text.isEmpty
                             ? 'Category Name'
-                            : _titleController.text,
+                            : _titleCtrl.text,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: _titleController.text.isEmpty
+                          color: _titleCtrl.text.isEmpty
                               ? AppTheme.textSecondary
                               : AppTheme.textPrimary,
                         ),
                       ),
                       Text(
-                        _limitController.text.isEmpty
+                        _limitCtrl.text.isEmpty
                             ? 'Set your limit'
-                            : '£${_limitController.text}/month',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                        ),
+                            : '£${_limitCtrl.text}/month',
+                        style: const TextStyle(
+                            fontSize: 12, color: AppTheme.textSecondary),
                       ),
                     ],
                   ),
@@ -134,31 +101,30 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
             ),
             const SizedBox(height: 24),
 
-            _sectionLabel('Category Name'),
+            _label('Category Name'),
             const SizedBox(height: 8),
-            _buildTextField(
-              controller: _titleController,
-              hint: 'e.g. Entertainment, Gym...',
-              onChanged: (_) => setState(() {}),
+            _textField(
+              ctrl: _titleCtrl,
+              hint: 'e.g. Entertainment, Subscriptions…',
+              onChange: (_) => setState(() {}),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
-            _sectionLabel('Monthly Budget Limit (£)'),
+            _label('Monthly Limit (£)'),
             const SizedBox(height: 8),
-            _buildTextField(
-              controller: _limitController,
+            _textField(
+              ctrl: _limitCtrl,
               hint: '0.00',
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
+              type: const TextInputType.numberWithOptions(decimal: true),
+              formatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
               ],
-              onChanged: (_) => setState(() {}),
+              onChange: (_) => setState(() {}),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 22),
 
-            _sectionLabel('Icon'),
-            const SizedBox(height: 12),
+            _label('Icon'),
+            const SizedBox(height: 10),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -167,94 +133,85 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
               ),
-              itemCount: _iconOptions.length,
-              itemBuilder: (context, index) {
-                final item = _iconOptions[index];
-                final icon = item['icon'] as IconData;
-                final selected = icon == _selectedIcon;
+              itemCount: AppTheme.iconOptions.length,
+              itemBuilder: (_, i) {
+                final ic =
+                    AppTheme.iconOptions[i]['icon'] as IconData;
+                final sel = ic == _icon;
                 return GestureDetector(
-                  onTap: () => setState(() => _selectedIcon = icon),
+                  onTap: () => setState(() => _icon = ic),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     decoration: BoxDecoration(
-                      color: selected
-                          ? _selectedColor.withOpacity(0.15)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(14),
+                      color: sel ? _color.withOpacity(0.12) : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: selected
-                            ? _selectedColor
-                            : Colors.grey.shade200,
-                        width: selected ? 2 : 1,
-                      ),
+                          color: sel ? _color : Colors.grey.shade200,
+                          width: sel ? 2 : 1),
                     ),
-                    child: Icon(
-                      icon,
-                      color: selected ? _selectedColor : AppTheme.textSecondary,
-                      size: 22,
-                    ),
+                    child: Icon(ic,
+                        color:
+                            sel ? _color : AppTheme.textSecondary,
+                        size: 22),
                   ),
                 );
               },
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 22),
 
-            _sectionLabel('Color'),
-            const SizedBox(height: 12),
+            _label('Color'),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 10,
               runSpacing: 10,
-              children: AppTheme.categoryColors.map((color) {
-                final selected = color == _selectedColor;
+              children: AppTheme.categoryColors.map((c) {
+                final sel = c == _color;
                 return GestureDetector(
-                  onTap: () => setState(() => _selectedColor = color),
+                  onTap: () => setState(() => _color = c),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: color,
+                      color: c,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: selected ? Colors.white : Colors.transparent,
-                        width: 3,
-                      ),
-                      boxShadow: selected
+                          color: sel ? Colors.white : Colors.transparent,
+                          width: 3),
+                      boxShadow: sel
                           ? [
                               BoxShadow(
-                                color: color.withOpacity(0.5),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              )
+                                  color: c.withOpacity(0.5),
+                                  blurRadius: 8,
+                                  spreadRadius: 1)
                             ]
                           : [],
                     ),
-                    child: selected
-                        ? const Icon(Icons.check, color: Colors.white, size: 18)
+                    child: sel
+                        ? const Icon(Icons.check,
+                            color: Colors.white, size: 18)
                         : null,
                   ),
                 );
               }).toList(),
             ),
-            const SizedBox(height: 36),
+            const SizedBox(height: 32),
 
             SizedBox(
               width: double.infinity,
-              height: 54,
+              height: 52,
               child: ElevatedButton(
                 onPressed: _submit,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _selectedColor,
+                  backgroundColor: _color,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                      borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text(
-                  'Create Category',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                ),
+                child: const Text('Create Category',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w700)),
               ),
             ),
             const SizedBox(height: 20),
@@ -264,23 +221,18 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
     );
   }
 
-  Widget _sectionLabel(String text) {
-    return Text(
-      text,
+  Widget _label(String t) => Text(t,
       style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
-        color: AppTheme.textPrimary,
-      ),
-    );
-  }
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: AppTheme.textPrimary));
 
-  Widget _buildTextField({
-    required TextEditingController controller,
+  Widget _textField({
+    required TextEditingController ctrl,
     required String hint,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? inputFormatters,
-    ValueChanged<String>? onChanged,
+    TextInputType? type,
+    List<TextInputFormatter>? formatters,
+    ValueChanged<String>? onChange,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -289,18 +241,18 @@ class _AddBudgetScreenState extends State<AddBudgetScreen> {
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        inputFormatters: inputFormatters,
-        onChanged: onChanged,
+        controller: ctrl,
+        keyboardType: type,
+        inputFormatters: formatters,
+        onChanged: onChange,
         style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: AppTheme.textPrimary,
-        ),
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textPrimary),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: AppTheme.textSecondary),
+          hintStyle:
+              const TextStyle(color: AppTheme.textSecondary),
           border: InputBorder.none,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

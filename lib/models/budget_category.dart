@@ -22,7 +22,9 @@ class BudgetCategory {
   IconData get icon => IconData(iconCodePoint, fontFamily: iconFontFamily);
 
   double get remainingAmount => monthlyLimit - spentAmount;
-  double get percentUsed => (spentAmount / monthlyLimit).clamp(0.0, 1.1);
+  double get percentUsed => monthlyLimit > 0
+      ? (spentAmount / monthlyLimit).clamp(0.0, 1.1)
+      : 0.0;
   bool get isOverBudget => spentAmount > monthlyLimit;
 
   BudgetCategory copyWith({
@@ -56,12 +58,13 @@ class BudgetCategory {
       };
 
   factory BudgetCategory.fromJson(Map<String, dynamic> json) => BudgetCategory(
-        id: json['id'],
-        title: json['title'],
-        iconCodePoint: json['iconCodePoint'],
-        iconFontFamily: json['iconFontFamily'] ?? 'MaterialIcons',
+        id: json['id'] as String,
+        title: json['title'] as String,
+        iconCodePoint: json['iconCodePoint'] as int,
+        iconFontFamily:
+            (json['iconFontFamily'] as String?) ?? 'MaterialIcons',
         monthlyLimit: (json['monthlyLimit'] as num).toDouble(),
         spentAmount: (json['spentAmount'] as num).toDouble(),
-        color: Color(json['color']),
+        color: Color(json['color'] as int),
       );
 }

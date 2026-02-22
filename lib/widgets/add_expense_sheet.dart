@@ -15,52 +15,45 @@ class AddExpenseSheet extends StatefulWidget {
 }
 
 class _AddExpenseSheetState extends State<AddExpenseSheet> {
-  final _amountController = TextEditingController();
-  final _noteController = TextEditingController();
-  double _enteredAmount = 0;
+  final _amountCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
+  double _amount = 0;
 
   @override
   void initState() {
     super.initState();
-    _amountController.addListener(() {
-      setState(() {
-        _enteredAmount = double.tryParse(_amountController.text) ?? 0;
-      });
+    _amountCtrl.addListener(() {
+      setState(() => _amount = double.tryParse(_amountCtrl.text) ?? 0);
     });
   }
 
   @override
   void dispose() {
-    _amountController.dispose();
-    _noteController.dispose();
+    _amountCtrl.dispose();
+    _noteCtrl.dispose();
     super.dispose();
   }
 
-  double get _projectedRemaining =>
-      widget.category.remainingAmount - _enteredAmount;
+  double get _projected => widget.category.remainingAmount - _amount;
 
   void _submit() {
-    final amount = double.tryParse(_amountController.text);
+    final amount = double.tryParse(_amountCtrl.text);
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid amount')),
       );
       return;
     }
-
-    context.read<BudgetCubit>().addExpense(
-          widget.category.id,
-          amount,
-          _noteController.text,
-        );
-
+    context
+        .read<BudgetCubit>()
+        .addExpense(widget.category.id, amount, _noteCtrl.text);
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final cat = widget.category;
-    final isOver = _projectedRemaining < 0;
+    final isOver = _projected < 0;
 
     return Container(
       decoration: const BoxDecoration(
@@ -82,9 +75,8 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2)),
             ),
           ),
           const SizedBox(height: 20),
@@ -94,128 +86,98 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: cat.color,
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                    color: cat.color, borderRadius: BorderRadius.circular(14)),
                 child: Icon(cat.icon, color: Colors.white, size: 22),
               ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Log Expense',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  Text(
-                    cat.title,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
+                  const Text('Log Expense',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary)),
+                  Text(cat.title,
+                      style: const TextStyle(
+                          fontSize: 12, color: AppTheme.textSecondary)),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           // Live math preview
           AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            padding: const EdgeInsets.all(16),
+            duration: const Duration(milliseconds: 250),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: isOver
-                  ? const Color(0xFFE05555).withOpacity(0.08)
-                  : cat.color.withOpacity(0.08),
+                  ? AppTheme.danger.withOpacity(0.06)
+                  : cat.color.withOpacity(0.07),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isOver
-                    ? const Color(0xFFE05555).withOpacity(0.2)
+                    ? AppTheme.danger.withOpacity(0.2)
                     : cat.color.withOpacity(0.2),
               ),
             ),
-            child: Column(
-              children: [
-                _mathRow('Budget', '£${cat.monthlyLimit.toStringAsFixed(0)}',
-                    AppTheme.textPrimary),
-                _mathRow(
-                    'Spent', '- £${cat.spentAmount.toStringAsFixed(0)}', AppTheme.textSecondary),
-                if (_enteredAmount > 0)
-                  _mathRow(
-                    "Today's Spending",
-                    '- £${_enteredAmount.toStringAsFixed(0)}',
-                    cat.color,
-                  ),
-                Divider(
-                  color: cat.color.withOpacity(0.2),
-                  height: 16,
+            child: Column(children: [
+              _row('Budget', '£${cat.monthlyLimit.toStringAsFixed(0)}',
+                  AppTheme.textPrimary),
+              _row('Spent', '− £${cat.spentAmount.toStringAsFixed(0)}',
+                  AppTheme.textSecondary),
+              if (_amount > 0)
+                _row("Today's Spending",
+                    '− £${_amount.toStringAsFixed(0)}', cat.color),
+              Divider(color: cat.color.withOpacity(0.15), height: 12),
+              _row(
+                'Remaining',
+                isOver
+                    ? '−£${(-_projected).toStringAsFixed(0)}'
+                    : '£${_projected.toStringAsFixed(0)}',
+                isOver ? AppTheme.danger : AppTheme.success,
+                bold: true,
+              ),
+              if (isOver)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        size: 13, color: AppTheme.danger),
+                    const SizedBox(width: 4),
+                    Text('Exceeds budget – will be logged anyway',
+                        style: TextStyle(
+                            fontSize: 11, color: AppTheme.danger)),
+                  ]),
                 ),
-                _mathRow(
-                  'Remaining',
-                  isOver
-                      ? '-£${(-_projectedRemaining).toStringAsFixed(0)}'
-                      : '£${_projectedRemaining.toStringAsFixed(0)}',
-                  isOver ? const Color(0xFFE05555) : const Color(0xFF4CAF50),
-                  bold: true,
-                ),
-                if (isOver)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.warning_rounded,
-                            size: 14, color: Color(0xFFE05555)),
-                        const SizedBox(width: 4),
-                        Text(
-                          'This will exceed your budget',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: const Color(0xFFE05555),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+            ]),
           ),
+          const SizedBox(height: 16),
 
-          const SizedBox(height: 20),
-
-          // Amount field
-          _buildTextField(
-            controller: _amountController,
+          _field(
+            controller: _amountCtrl,
             label: 'Amount (£)',
             hint: '0.00',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-            ],
-            prefixIcon: Icons.attach_money_rounded,
+            icon: Icons.attach_money_rounded,
             color: cat.color,
+            type: const TextInputType.numberWithOptions(decimal: true),
+            formatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))
+            ],
           ),
-          const SizedBox(height: 12),
-
-          // Note field
-          _buildTextField(
-            controller: _noteController,
+          const SizedBox(height: 10),
+          _field(
+            controller: _noteCtrl,
             label: 'Note (Optional)',
             hint: 'e.g. Groceries (Tesco)',
-            keyboardType: TextInputType.text,
-            prefixIcon: Icons.edit_note_rounded,
+            icon: Icons.edit_note_rounded,
             color: cat.color,
           ),
-
-          const SizedBox(height: 24),
-
+          const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            height: 54,
+            height: 52,
             child: ElevatedButton(
               onPressed: _submit,
               style: ElevatedButton.styleFrom(
@@ -223,16 +185,10 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                    borderRadius: BorderRadius.circular(16)),
               ),
-              child: const Text(
-                'Log Expense',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              child: const Text('Log Expense',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             ),
           ),
         ],
@@ -240,66 +196,57 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
     );
   }
 
-  Widget _mathRow(String label, String value, Color valueColor,
+  Widget _row(String label, String value, Color valueColor,
       {bool bold = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: AppTheme.textSecondary,
-              fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              color: valueColor,
-              fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
-            ),
-          ),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary,
+                  fontWeight: bold ? FontWeight.w600 : FontWeight.normal)),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: valueColor,
+                  fontWeight: bold ? FontWeight.w800 : FontWeight.w600)),
         ],
       ),
     );
   }
 
-  Widget _buildTextField({
+  Widget _field({
     required TextEditingController controller,
     required String label,
     required String hint,
-    required TextInputType keyboardType,
-    required IconData prefixIcon,
+    required IconData icon,
     required Color color,
-    List<TextInputFormatter>? inputFormatters,
+    TextInputType? type,
+    List<TextInputFormatter>? formatters,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.lightBg,
-        borderRadius: BorderRadius.circular(14),
-      ),
+          color: AppTheme.lightBg, borderRadius: BorderRadius.circular(14)),
       child: TextField(
         controller: controller,
-        keyboardType: keyboardType,
-        inputFormatters: inputFormatters,
+        keyboardType: type,
+        inputFormatters: formatters,
         style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: AppTheme.textPrimary,
-        ),
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textPrimary),
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          prefixIcon: Icon(prefixIcon, color: color, size: 20),
+          prefixIcon: Icon(icon, color: color, size: 20),
           border: InputBorder.none,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           labelStyle:
-              TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
         ),
       ),
     );

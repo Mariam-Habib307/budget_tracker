@@ -1,60 +1,50 @@
 import 'package:equatable/equatable.dart';
-import '../models/budget_category.dart';
-import '../models/transaction.dart';
+import '../models/monthly_container.dart';
 
 abstract class BudgetState extends Equatable {
   const BudgetState();
-
   @override
   List<Object?> get props => [];
 }
 
+/// Before any data has been loaded
 class BudgetInitial extends BudgetState {
   const BudgetInitial();
 }
 
+/// Transitioning between months or first load
 class BudgetLoading extends BudgetState {
   const BudgetLoading();
 }
 
+/// Active state: one month is in focus, all month keys are known
 class BudgetLoaded extends BudgetState {
-  final List<BudgetCategory> categories;
-  final List<Transaction> transactions;
+  final MonthlyContainer currentMonth;
+  final List<String> availableMonthKeys; // sorted ascending
 
   const BudgetLoaded({
-    required this.categories,
-    required this.transactions,
+    required this.currentMonth,
+    required this.availableMonthKeys,
   });
 
-  double get totalBudget =>
-      categories.fold(0, (sum, c) => sum + c.monthlyLimit);
-  double get totalSpent =>
-      categories.fold(0, (sum, c) => sum + c.spentAmount);
-  double get totalRemaining => totalBudget - totalSpent;
-
-  List<Transaction> transactionsForCategory(String categoryId) =>
-      transactions.where((t) => t.categoryId == categoryId).toList()
-        ..sort((a, b) => b.date.compareTo(a.date));
-
   BudgetLoaded copyWith({
-    List<BudgetCategory>? categories,
-    List<Transaction>? transactions,
+    MonthlyContainer? currentMonth,
+    List<String>? availableMonthKeys,
   }) {
     return BudgetLoaded(
-      categories: categories ?? this.categories,
-      transactions: transactions ?? this.transactions,
+      currentMonth: currentMonth ?? this.currentMonth,
+      availableMonthKeys: availableMonthKeys ?? this.availableMonthKeys,
     );
   }
 
   @override
-  List<Object?> get props => [categories, transactions];
+  List<Object?> get props => [currentMonth, availableMonthKeys];
 }
 
+/// Recoverable error — the UI re-emits the previous loaded state after showing
 class BudgetError extends BudgetState {
   final String message;
-
   const BudgetError(this.message);
-
   @override
   List<Object?> get props => [message];
 }

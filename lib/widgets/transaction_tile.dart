@@ -25,10 +25,10 @@ class TransactionTile extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: const Color(0xFFE05555).withOpacity(0.1),
+          color: AppTheme.danger.withOpacity(0.1),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Icon(Icons.delete_rounded, color: Color(0xFFE05555)),
+        child: const Icon(Icons.delete_rounded, color: AppTheme.danger),
       ),
       onDismissed: (_) => onDelete(),
       child: Container(
@@ -42,13 +42,13 @@ class TransactionTile extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 color: category.color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(category.icon, color: category.color, size: 18),
+              child: Icon(category.icon, color: category.color, size: 17),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -56,30 +56,29 @@ class TransactionTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    transaction.note.isEmpty ? category.title : transaction.note,
+                    transaction.note.isEmpty
+                        ? category.title
+                        : transaction.note,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppTheme.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 2),
                   Text(
-                    DateFormat('MMM d, HH:mm').format(transaction.date),
+                    DateFormat('MMM d · HH:mm').format(transaction.date),
                     style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textSecondary,
-                    ),
+                        fontSize: 11, color: AppTheme.textSecondary),
                   ),
                 ],
               ),
             ),
             Text(
-              '-£${transaction.amount.toStringAsFixed(2)}',
+              '−£${transaction.amount.toStringAsFixed(2)}',
               style: const TextStyle(
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFFE05555),
+                color: AppTheme.danger,
               ),
             ),
           ],

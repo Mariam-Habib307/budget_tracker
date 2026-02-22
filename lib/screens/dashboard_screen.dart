@@ -4,8 +4,13 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../cubit/budget_cubit.dart';
 import '../cubit/budget_state.dart';
+import '../models/monthly_container.dart';
 import '../utils/app_theme.dart';
+import '../widgets/month_picker_strip.dart';
+import '../widgets/income_header.dart';
 import '../widgets/budget_card.dart';
+import '../widgets/empty_month_state.dart';
+import '../widgets/add_expense_sheet.dart';
 import 'category_detail_screen.dart';
 import 'add_budget_screen.dart';
 
@@ -22,106 +27,229 @@ class DashboardScreen extends StatelessWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: const Color(0xFFE05555),
+                backgroundColor: AppTheme.danger,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    borderRadius: BorderRadius.circular(12)),
+                margin: const EdgeInsets.all(16),
               ),
             );
           }
         },
         builder: (context, state) {
           if (state is BudgetLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+                child: CircularProgressIndicator(color: AppTheme.teal));
           }
           if (state is BudgetLoaded) {
-            return _buildDashboard(context, state);
+            return _buildBody(context, state);
           }
           return const Center(child: CircularProgressIndicator());
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AddBudgetScreen()),
-        ),
-        backgroundColor: AppTheme.teal,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        child: const Icon(Icons.add_rounded),
-      ),
     );
   }
 
-  Widget _buildDashboard(BuildContext context, BudgetLoaded state) {
-    final now = DateTime.now();
-    final monthLabel = DateFormat('MMMM yyyy').format(now);
+  Widget _buildBody(BuildContext context, BudgetLoaded state) {
+    final month = state.currentMonth;
+    final isEmpty = month.categories.isEmpty;
+    final monthLabel = DateFormat('MMMM yyyy')
+        .format(MonthlyContainer.dateFor(month.monthKey));
+    final isCurrentMonth =
+        month.monthKey == MonthlyContainer.keyFor(DateTime.now());
 
-    return CustomScrollView(
-      slivers: [
-        // Header
-        SliverToBoxAdapter(
-          child: _buildHeader(context, state, monthLabel),
-        ),
+    // Check if previous data exists for "Copy" feature
+    final hasPrevious = state.availableMonthKeys
+        .where((k) => k.compareTo(month.monthKey) < 0)
+        .any((k) => true);
 
-        // Grid title
-        SliverToBoxAdapter(
+    return Column(
+      children: [
+        // ── App bar ─────────────────────────────────────────────────────────
+        SafeArea(
+          bottom: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Categories',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'BudgetFlow',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      monthLabel,
+                      style: const TextStyle(
+                          fontSize: 13, color: AppTheme.textSecondary),
+                    ),
+                  ],
                 ),
-                TextButton.icon(
-                  onPressed: () => _showResetDialog(context),
-                  icon: const Icon(Icons.refresh_rounded, size: 16),
-                  label: const Text('Reset Month'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.textSecondary,
-                    textStyle:
-                        const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
+                Row(
+                  children: [
+                    if (!isCurrentMonth)
+                      GestureDetector(
+                        onTap: () => context
+                            .read<BudgetCubit>()
+                            .switchMonth(DateTime.now()),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.teal.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text('Today',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.teal)),
+                        ),
+                      ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const AddBudgetScreen()),
+                      ),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: AppTheme.teal,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.add_rounded,
+                            color: Colors.white, size: 22),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
 
-        // Budget cards grid
+        // ── Month picker ────────────────────────────────────────────────────
+        const SizedBox(height: 12),
+        MonthPickerStrip(
+          currentMonthKey: month.monthKey,
+          availableKeys: state.availableMonthKeys,
+          onMonthSelected: (date) =>
+              context.read<BudgetCubit>().switchMonth(date),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Scrollable content ──────────────────────────────────────────────
+        Expanded(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 350),
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            child: isEmpty
+                ? EmptyMonthState(
+                    key: ValueKey('empty_${month.monthKey}'),
+                    monthKey: month.monthKey,
+                    hasPreviousData: hasPrevious,
+                    onCopyPrevious: () => context
+                        .read<BudgetCubit>()
+                        .copyBudgetsFromPreviousMonth(),
+                    onAddCategory: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const AddBudgetScreen()),
+                    ),
+                  )
+                : _buildContent(context, state),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContent(BuildContext context, BudgetLoaded state) {
+    final month = state.currentMonth;
+
+    return CustomScrollView(
+      key: ValueKey('loaded_${month.monthKey}'),
+      slivers: [
+        // Income header
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
+            child: IncomeHeader(
+              income: month.monthIncome,
+              totalBudgeted: month.totalBudgeted,
+              totalSpent: month.totalSpent,
+              onIncomeChanged: (v) =>
+                  context.read<BudgetCubit>().updateIncome(v),
+            ).animate().fadeIn(duration: 300.ms),
+          ),
+        ),
+
+        // Section header
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${month.categories.length} Categories',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                Text(
+                  'Long-press to edit',
+                  style: const TextStyle(
+                      fontSize: 11, color: AppTheme.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Category cards grid
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.78,
+              childAspectRatio: 0.76,
               crossAxisSpacing: 14,
               mainAxisSpacing: 14,
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
-                final cat = state.categories[index];
+                final cat = month.categories[index];
                 return BudgetCard(
                   category: cat,
                   index: index,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CategoryDetailScreen(category: cat),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CategoryDetailScreen(
+                        categoryId: cat.id,
                       ),
-                    );
-                  },
+                    ),
+                  ),
+                  onLimitChanged: (newLimit) => context
+                      .read<BudgetCubit>()
+                      .updateCategoryLimit(cat.id, newLimit),
+                  onDelete: () => _confirmDelete(context, cat.id, cat.title),
                 );
               },
-              childCount: state.categories.length,
+              childCount: month.categories.length,
             ),
           ),
         ),
@@ -131,179 +259,32 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(
-      BuildContext context, BudgetLoaded state, String monthLabel) {
-    final spentPercent =
-        state.totalBudget > 0 ? state.totalSpent / state.totalBudget : 0.0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      decoration: const BoxDecoration(
-        color: AppTheme.teal,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        monthLabel,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ).animate().fadeIn(duration: 500.ms),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Monthly Overview',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white.withOpacity(0.75),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.account_balance_wallet_rounded,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  _statPill(
-                    'Spent',
-                    '£${state.totalSpent.toStringAsFixed(0)}',
-                    Colors.white.withOpacity(0.2),
-                  ),
-                  const SizedBox(width: 10),
-                  _statPill(
-                    'Budget',
-                    '£${state.totalBudget.toStringAsFixed(0)}',
-                    Colors.white.withOpacity(0.2),
-                  ),
-                  const SizedBox(width: 10),
-                  _statPill(
-                    'Left',
-                    '£${state.totalRemaining.toStringAsFixed(0)}',
-                    Colors.white.withOpacity(0.2),
-                    highlight: true,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  value: spentPercent.clamp(0.0, 1.0),
-                  minHeight: 8,
-                  backgroundColor: Colors.white.withOpacity(0.25),
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    spentPercent > 0.9
-                        ? const Color(0xFFE8845C)
-                        : Colors.white,
-                  ),
-                ),
-              ).animate().slideX(begin: -0.2, end: 0, duration: 600.ms),
-              const SizedBox(height: 6),
-              Text(
-                '${(spentPercent * 100).toStringAsFixed(0)}% of budget used',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.white.withOpacity(0.75),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _statPill(String label, String value, Color bg,
-      {bool highlight = false}) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.white.withOpacity(0.75),
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showResetDialog(BuildContext context) {
+  void _confirmDelete(BuildContext ctx, String catId, String title) {
     showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
+      context: ctx,
+      builder: (dCtx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Reset Month?'),
+        title: Text('Delete "$title"?'),
         content: const Text(
-          'This will clear all spending data and transactions for the month. Categories will be kept.',
+          'This removes the category and all its transactions for this month only. Other months are not affected.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
+              onPressed: () => Navigator.pop(dCtx),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
-              context.read<BudgetCubit>().resetMonthlyBudgets();
-              Navigator.pop(ctx);
+              ctx.read<BudgetCubit>().deleteCategory(catId);
+              Navigator.pop(dCtx);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE05555),
+              backgroundColor: AppTheme.danger,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+                  borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Reset'),
+            child: const Text('Delete This Month'),
           ),
         ],
       ),
