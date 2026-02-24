@@ -5,7 +5,6 @@ import '../models/budget_category.dart';
 import '../models/monthly_container.dart';
 import '../models/transaction.dart';
 import '../services/storage_service.dart';
-import '../utils/app_theme.dart';
 import 'budget_state.dart';
 
 class BudgetCubit extends Cubit<BudgetState> {
@@ -22,7 +21,6 @@ class BudgetCubit extends Cubit<BudgetState> {
       final currentKey = MonthlyContainer.keyFor(DateTime.now());
       var container = _storage.load(currentKey);
 
-      // First ever launch → seed with default categories
       if (container == null) {
         container = MonthlyContainer(
           monthKey: currentKey,
@@ -52,9 +50,7 @@ class BudgetCubit extends Cubit<BudgetState> {
     try {
       var container = _storage.load(key);
       if (container == null) {
-        // New month — emit as empty; caller UI will offer "Copy" option
         container = MonthlyContainer.empty(key);
-        // Don't persist yet; only persist when user takes an action
       }
 
       final keys = _ensureKeyPresent(loaded.availableMonthKeys, key);
@@ -65,12 +61,10 @@ class BudgetCubit extends Cubit<BudgetState> {
     }
   }
 
-  /// Copy category definitions (zeroed spending) from the previous month.
   Future<void> copyBudgetsFromPreviousMonth() async {
     final loaded = _requireLoaded();
     if (loaded == null) return;
 
-    // Find the closest earlier month key
     final currentKey = loaded.currentMonth.monthKey;
     final allKeys = List<String>.from(loaded.availableMonthKeys)..sort();
     final previousKey = allKeys
@@ -88,8 +82,7 @@ class BudgetCubit extends Cubit<BudgetState> {
     await _storage.save(newContainer);
 
     final keys = _ensureKeyPresent(loaded.availableMonthKeys, currentKey);
-    emit(BudgetLoaded(
-        currentMonth: newContainer, availableMonthKeys: keys));
+    emit(BudgetLoaded(currentMonth: newContainer, availableMonthKeys: keys));
   }
 
   // ── Income ─────────────────────────────────────────────────────────────────
@@ -109,8 +102,9 @@ class BudgetCubit extends Cubit<BudgetState> {
 
   // ── Categories ─────────────────────────────────────────────────────────────
 
+  /// [iconKey] must be a key from IconRegistry (e.g. "home", "food")
   Future<void> addCustomBudget(
-      String title, double limit, IconData icon, Color color) async {
+      String title, double limit, String iconKey, Color color) async {
     final loaded = _requireLoaded();
     if (loaded == null) return;
 
@@ -133,8 +127,7 @@ class BudgetCubit extends Cubit<BudgetState> {
     final newCat = BudgetCategory(
       id: _uuid.v4(),
       title: trimmed,
-      iconCodePoint: icon.codePoint,
-      iconFontFamily: icon.fontFamily ?? 'MaterialIcons',
+      iconKey: iconKey,
       monthlyLimit: limit,
       color: color,
     );
@@ -145,9 +138,7 @@ class BudgetCubit extends Cubit<BudgetState> {
     await _persistAndEmit(loaded, updated);
   }
 
-  /// Long-press inline edit: update only this month's limit for the category.
-  Future<void> updateCategoryLimit(
-      String categoryId, double newLimit) async {
+  Future<void> updateCategoryLimit(String categoryId, double newLimit) async {
     final loaded = _requireLoaded();
     if (loaded == null) return;
 
@@ -161,21 +152,16 @@ class BudgetCubit extends Cubit<BudgetState> {
       return c;
     }).toList();
 
-    final updated =
-        loaded.currentMonth.copyWith(categories: updatedCats);
+    final updated = loaded.currentMonth.copyWith(categories: updatedCats);
     await _persistAndEmit(loaded, updated);
   }
 
-  /// Deletes category AND all its transactions for the current month only.
   Future<void> deleteCategory(String categoryId) async {
     final loaded = _requireLoaded();
     if (loaded == null) return;
 
-    final updatedCats = loaded.currentMonth.categories
-        .where((c) => c.id != categoryId)
-        .toList();
-
-    // Data integrity: also remove all linked transactions
+    final updatedCats =
+        loaded.currentMonth.categories.where((c) => c.id != categoryId).toList();
     final updatedTxns = loaded.currentMonth.transactions
         .where((t) => t.categoryId != categoryId)
         .toList();
@@ -247,8 +233,8 @@ class BudgetCubit extends Cubit<BudgetState> {
         transactions: updatedTxns,
       );
       await _persistAndEmit(loaded, updated);
-    } catch (e) {
-      _emitError(loaded, 'Transaction not found.');
+    } catch (_) {
+      _emitError(loaded!, 'Transaction not found.');
     }
   }
 
@@ -256,8 +242,7 @@ class BudgetCubit extends Cubit<BudgetState> {
 
   BudgetLoaded? _requireLoaded() {
     final s = state;
-    if (s is BudgetLoaded) return s;
-    return null;
+    return s is BudgetLoaded ? s : null;
   }
 
   Future<void> _persistAndEmit(
@@ -270,40 +255,39 @@ class BudgetCubit extends Cubit<BudgetState> {
 
   void _emitError(BudgetLoaded prev, String message) {
     emit(BudgetError(message));
-    emit(prev); // restore immediately so UI can react
+    emit(prev);
   }
 
   List<String> _ensureKeyPresent(List<String> keys, String key) {
-    final set = {...keys, key}.toList()..sort();
-    return set;
+    return ({...keys, key}.toList()..sort());
   }
 
   List<BudgetCategory> _defaultCategories() => [
         BudgetCategory(
           id: 'home',
           title: 'Home',
-          iconCodePoint: Icons.home_rounded.codePoint,
+          iconKey: 'home',
           monthlyLimit: 500,
           color: const Color(0xFF5BA4A4),
         ),
         BudgetCategory(
           id: 'food',
           title: 'Food',
-          iconCodePoint: Icons.restaurant_rounded.codePoint,
+          iconKey: 'food',
           monthlyLimit: 300,
           color: const Color(0xFFE8845C),
         ),
         BudgetCategory(
           id: 'transport',
           title: 'Transport',
-          iconCodePoint: Icons.directions_car_rounded.codePoint,
+          iconKey: 'car',
           monthlyLimit: 200,
           color: const Color(0xFF7EB8A4),
         ),
         BudgetCategory(
           id: 'bills',
           title: 'Bills',
-          iconCodePoint: Icons.receipt_long_rounded.codePoint,
+          iconKey: 'bills',
           monthlyLimit: 150,
           color: const Color(0xFFE8A55C),
         ),

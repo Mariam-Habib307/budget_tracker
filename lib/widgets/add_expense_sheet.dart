@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/budget_cubit.dart';
 import '../models/budget_category.dart';
+import '../utils/icon_registry.dart';
 import '../utils/app_theme.dart';
 
 class AddExpenseSheet extends StatefulWidget {
@@ -87,7 +88,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                 height: 44,
                 decoration: BoxDecoration(
                     color: cat.color, borderRadius: BorderRadius.circular(14)),
-                child: Icon(cat.icon, color: Colors.white, size: 22),
+                child: Icon(IconRegistry.resolve(cat.iconKey), color: Colors.white, size: 22),
               ),
               const SizedBox(width: 12),
               Column(

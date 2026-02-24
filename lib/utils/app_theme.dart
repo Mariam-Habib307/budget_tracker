@@ -46,30 +46,15 @@ class AppTheme {
     return teal;
   }
 
-  static List<Color> categoryColors = [
-    const Color(0xFF5BA4A4),
-    const Color(0xFFE8845C),
-    const Color(0xFF7EB8A4),
-    const Color(0xFFE8A55C),
-    const Color(0xFF8B7FC7),
-    const Color(0xFFE87C7C),
-    const Color(0xFF5B8FA4),
-    const Color(0xFFA4845B),
-  ];
-
-  static const List<Map<String, dynamic>> iconOptions = [
-    {'icon': Icons.home_rounded, 'label': 'Home'},
-    {'icon': Icons.restaurant_rounded, 'label': 'Food'},
-    {'icon': Icons.directions_car_rounded, 'label': 'Car'},
-    {'icon': Icons.local_hospital_rounded, 'label': 'Health'},
-    {'icon': Icons.school_rounded, 'label': 'Education'},
-    {'icon': Icons.shopping_bag_rounded, 'label': 'Shopping'},
-    {'icon': Icons.flight_rounded, 'label': 'Travel'},
-    {'icon': Icons.sports_esports_rounded, 'label': 'Games'},
-    {'icon': Icons.fitness_center_rounded, 'label': 'Gym'},
-    {'icon': Icons.receipt_long_rounded, 'label': 'Bills'},
-    {'icon': Icons.pets_rounded, 'label': 'Pets'},
-    {'icon': Icons.category_rounded, 'label': 'Other'},
+  static const List<Color> categoryColors = [
+    Color(0xFF5BA4A4),
+    Color(0xFFE8845C),
+    Color(0xFF7EB8A4),
+    Color(0xFFE8A55C),
+    Color(0xFF8B7FC7),
+    Color(0xFFE87C7C),
+    Color(0xFF5B8FA4),
+    Color(0xFFA4845B),
   ];
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/transaction.dart';
 import '../models/budget_category.dart';
+import '../utils/icon_registry.dart';
 import '../utils/app_theme.dart';
 
 class TransactionTile extends StatelessWidget {
@@ -48,7 +49,7 @@ class TransactionTile extends StatelessWidget {
                 color: category.color.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(category.icon, color: category.color, size: 17),
+              child: Icon(IconRegistry.resolve(category.iconKey), color: category.color, size: 17),
             ),
             const SizedBox(width: 12),
             Expanded(

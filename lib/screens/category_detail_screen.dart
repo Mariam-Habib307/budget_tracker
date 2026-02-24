@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../cubit/budget_cubit.dart';
 import '../cubit/budget_state.dart';
 import '../utils/app_theme.dart';
+import '../utils/icon_registry.dart';
 import '../widgets/add_expense_sheet.dart';
 import '../widgets/transaction_tile.dart';
 

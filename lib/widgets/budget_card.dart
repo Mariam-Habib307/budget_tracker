@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import '../models/budget_category.dart';
 import '../utils/app_theme.dart';
+import '../utils/icon_registry.dart';
 
 class BudgetCard extends StatelessWidget {
   final BudgetCategory category;
@@ -22,8 +23,8 @@ class BudgetCard extends StatelessWidget {
   });
 
   void _showEditSheet(BuildContext context) {
-    final ctrl = TextEditingController(
-        text: category.monthlyLimit.toStringAsFixed(0));
+    final ctrl =
+        TextEditingController(text: category.monthlyLimit.toStringAsFixed(0));
 
     showModalBottomSheet(
       context: context,
@@ -62,7 +63,8 @@ class BudgetCard extends StatelessWidget {
                   decoration: BoxDecoration(
                       color: category.color,
                       borderRadius: BorderRadius.circular(14)),
-                  child: Icon(category.icon, color: Colors.white, size: 22),
+                  child: Icon(IconRegistry.resolve(category.iconKey),
+                      color: Colors.white, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Column(
@@ -83,9 +85,8 @@ class BudgetCard extends StatelessWidget {
             const SizedBox(height: 20),
             Container(
               decoration: BoxDecoration(
-                color: AppTheme.lightBg,
-                borderRadius: BorderRadius.circular(14),
-              ),
+                  color: AppTheme.lightBg,
+                  borderRadius: BorderRadius.circular(14)),
               child: TextField(
                 controller: ctrl,
                 autofocus: true,
@@ -105,8 +106,8 @@ class BudgetCard extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                       color: category.color),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
               ),
             ),
@@ -121,7 +122,7 @@ class BudgetCard extends StatelessWidget {
                     },
                     icon: const Icon(Icons.delete_outline_rounded,
                         color: AppTheme.danger, size: 18),
-                    label: const Text('Delete Category',
+                    label: const Text('Delete',
                         style: TextStyle(color: AppTheme.danger)),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: AppTheme.danger),
@@ -191,10 +192,13 @@ class BudgetCard extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: category.color,
-                    borderRadius: BorderRadius.circular(12),
+                      color: category.color,
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Icon(
+                    // ✅ Resolved from registry — constant-safe
+                    IconRegistry.resolve(category.iconKey),
+                    color: Colors.white, size: 20,
                   ),
-                  child: Icon(category.icon, color: Colors.white, size: 20),
                 ),
                 if (category.isOverBudget)
                   Container(
@@ -232,10 +236,9 @@ class BudgetCard extends StatelessWidget {
                 center: Text(
                   '£${category.spentAmount.toStringAsFixed(0)}',
                   style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: category.color,
-                  ),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: category.color),
                 ),
                 progressColor: progressColor,
                 backgroundColor: progressColor.withOpacity(0.12),
@@ -256,17 +259,15 @@ class BudgetCard extends StatelessWidget {
                       ? '-£${(-category.remainingAmount).toStringAsFixed(0)}'
                       : '£${category.remainingAmount.toStringAsFixed(0)}',
                   style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: category.isOverBudget
-                        ? AppTheme.danger
-                        : AppTheme.textPrimary,
-                  ),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: category.isOverBudget
+                          ? AppTheme.danger
+                          : AppTheme.textPrimary),
                 ),
               ],
             ),
             const SizedBox(height: 4),
-            // Mini hint for long press
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
