@@ -22,7 +22,7 @@ class MonthPickerStrip extends StatefulWidget {
 class _MonthPickerStripState extends State<MonthPickerStrip> {
   late ScrollController _scroll;
 
-  // We show a window of months: ±12 around current month
+  // Full scrollable range: Jan 2020 – Dec 2030 (132 months)
   late List<DateTime> _months;
   late int _currentIndex;
 
@@ -39,21 +39,30 @@ class _MonthPickerStripState extends State<MonthPickerStrip> {
     super.didUpdateWidget(old);
     if (old.currentMonthKey != widget.currentMonthKey) {
       _buildMonths();
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _scrollToCurrent());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrent());
     }
   }
 
   void _buildMonths() {
-    final now = DateTime.now();
-    final current = MonthlyContainer.dateFor(widget.currentMonthKey);
-    _months = List.generate(25, (i) {
-      final d = DateTime(now.year, now.month - 12 + i);
-      return DateTime(d.year, d.month);
-    });
-    _currentIndex =
-        _months.indexWhere((m) => MonthlyContainer.keyFor(m) == widget.currentMonthKey);
-    if (_currentIndex < 0) _currentIndex = 12;
+    // Wide fixed range: Jan 2020 → Dec 2030 (132 months), so any
+    // calendar-navigated month always exists in the strip.
+    const startYear = 2020;
+    const endYear = 2030;
+    _months = [];
+    for (int y = startYear; y <= endYear; y++) {
+      for (int m = 1; m <= 12; m++) {
+        _months.add(DateTime(y, m));
+      }
+    }
+    _currentIndex = _months.indexWhere(
+        (m) => MonthlyContainer.keyFor(m) == widget.currentMonthKey);
+    // Fallback to today's position if key is somehow outside range
+    if (_currentIndex < 0) {
+      final now = DateTime.now();
+      _currentIndex =
+          _months.indexWhere((m) => m.year == now.year && m.month == now.month);
+      if (_currentIndex < 0) _currentIndex = 0;
+    }
   }
 
   void _scrollToCurrent() {

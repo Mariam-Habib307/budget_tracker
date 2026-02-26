@@ -10,9 +10,9 @@ import '../widgets/month_picker_strip.dart';
 import '../widgets/income_header.dart';
 import '../widgets/budget_card.dart';
 import '../widgets/empty_month_state.dart';
-import '../widgets/add_expense_sheet.dart';
 import 'category_detail_screen.dart';
 import 'add_budget_screen.dart';
+import 'calendar_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -113,6 +113,26 @@ class DashboardScreen extends StatelessWidget {
                         ),
                       ),
                     const SizedBox(width: 8),
+                    // Calendar button
+                    GestureDetector(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const CalendarScreen()),
+                      ),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: AppTheme.surface,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.calendar_month_rounded,
+                            color: AppTheme.teal, size: 20),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Add budget button
                     GestureDetector(
                       onTap: () => Navigator.push(
                         context,
